@@ -1,0 +1,156 @@
+<?php
+
+declare(strict_types = 1);
+
+namespace QueryBuilder\QB;
+
+use stdClass;
+
+/**
+ * @method static QBSelect select(array|string $columns = '*')
+ * @method static QBUpdate update(string|Model $table, string $as = null)
+ * @method static QBInsert insert(string|Model $table)
+ * @method static QBInsert insertInto(string|Model $table)
+ * @method static QBDelete delete(string|Model $table, string $as = null)
+ * @method static QBDelete deleteFrom(string|Model $table, string $as = null)
+ * @method static QBWhere col(mixed $column, mixed $operator_or_value = null, mixed $value = null)
+ * @method static QBIf if (mixed $condition, mixed $successValue, mixed $failedValue)
+ *
+ * @method static stdClass equal(mixed $value)
+ * @method static stdClass notEqual(mixed $value)
+ * @method static stdClass greaterThan(mixed $value)
+ * @method static stdClass lessThan(mixed $value)
+ * @method static stdClass greaterThanOrEqual(mixed $value)
+ * @method static stdClass lessThanOrEqual(mixed $value)
+ * @method static stdClass like(mixed $value)
+ * @method static stdClass notLike(mixed $value)
+ * @method static stdClass between(mixed $value1, mixed $value2)
+ * @method static stdClass notBetween(mixed $value1, mixed $value2)
+ * @method static stdClass in(string|array $value)
+ * @method static stdClass notIn(string|array $value)
+ * @method static stdClass isNull()
+ * @method static stdClass isNotNull()
+ * @method static stdClass isEmpty()
+ * @method static stdClass isNotEmpty()
+ *
+ * @method static QBAggregate count(string $value, string $alias = null)
+ * @method static QBAggregate sum(string $value, string $alias = null)
+ * @method static QBAggregate min(string $value, string $alias = null)
+ * @method static QBAggregate max(string $value, string $alias = null)
+ * @method static QBAggregate avg(string $value, string $alias = null)
+ * @method static QBAggregate distinct(string $value, string $alias = null)
+ *
+ */
+class QB
+{
+    use QBHelpers;
+
+    /**
+     * To enable audit globally
+     * @var string
+     */
+    const AUDIT = true;
+
+    /**
+     * To enable soft delete globally
+     * @var string
+     */
+    const SOFT_DELETE = true;
+
+    public static array $statements = ['select', 'update', 'insert', 'insertInto', 'delete', 'deleteFrom'];
+
+    public static array $joinMethods = [
+        'leftJoin' => 'LEFT JOIN',
+        'rightJoin' => 'RIGHT JOIN',
+        'crossJoin' => 'CROSS JOIN',
+        'innerJoin' => 'INNER JOIN',
+        'fullJoin' => 'FULL JOIN',
+    ];
+
+    public static array $relationalOperators = [
+        'equal', 'notEqual', 'greaterThan', 'lessThan', 'greaterThanOrEqual', 'lessThanOrEqual', 'like', 'notLike',
+        'between', 'notBetween', 'in', 'notIn', 'isNull', 'isNotNull', 'isEmpty', 'isNotEmpty'
+    ];
+
+    public static array $relationalPureOperators = ['=', '!=', '>', '<', '>=', '<=', 'LIKE', 'NOT LIKE', 'BETWEEN', 'NOT BETWEEN', 'IN', 'NOT IN'];
+
+    public static array $aggregateFunctions = [
+        'count', 'sum', 'min', 'max', 'avg', 'distinct'
+    ];
+
+    /**
+     * @throws QBException
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        if (in_array($method, self::$statements)) {
+            $method = str_replace('insertInto', 'insert', $method);
+            $method = str_replace('deleteFrom', 'delete', $method);
+            $statement = "app\\core\\QueryBuilder\\QB" . ucfirst($method);
+            return (new $statement())->$method(...$arguments);
+        } elseif ($method == 'col') {
+            return (new QBWhere())->where(...$arguments);
+        } elseif (in_array($method, self::$relationalOperators)) {
+            $obj = new stdClass();
+            $obj->name = $method;
+            $obj->arguments = $arguments;
+            return $obj;
+        } elseif (in_array($method, self::$aggregateFunctions)) {
+            return (new QBAggregate())->$method(...$arguments);
+        } elseif ($method == 'if') {
+            return (new QBIf())->if(...$arguments);
+        }
+        throw new QBException("Method $method not found");
+    }
+
+    public static function resolve(string $type, mixed $value, mixed $extra_data = null): array
+    {
+        return (new QBResolver())->$type($value, $extra_data);
+    }
+
+    /**
+     *
+     * QB::insert('users')->values([
+     * 		'firstname' => DB::idata('Zahraa'),
+     * 		'lastname' => DB::idata('Alaa'),
+     * 		'email' => DB::idata('zara@yahoo.com', true), 									// true means insert the row
+     * 		'password' => DB::idata('456', false), 											// false means don't insert
+     *  	'fullname' => DB::idata('Zahraa Alaa', check: ['firstname', 'lastname']), 		// do insert if firstname or lastname inserted. It should be set after the fields that you want to check
+     * 		'birthdate' => DB::idata("DATE()", raw: true), 									// it means passing raw for the value to the query
+     * 		'country' => DB::idata(function() { return 'Sweden'; }) 						// you can use a function to get the new value
+     * ])->run(__FILE__, __LINE__);
+     *
+     * @param mixed $value
+     * @param bool $allow Allow insert or not
+     * @param array $check Check if array fields inserted. It should be set after the fields that you want to check
+     * @param bool $raw Pass raw for the value to the query
+     * @return array
+     */
+    public static function idata(mixed $value, bool $allow = true, array $check = [], bool $raw = false): array
+    {
+        return [$value, $allow, $check, $raw];
+    }
+
+    /**
+     * QB::update('users')->set([
+     * 		'firstname' => DB::udata('Zara', 'Zahraa'),
+     * 		'lastname' => DB::udata('Ali', 'Alaa'),
+     * 		'email' => DB::udata('zara@gmail.com', 'zara@yahoo.com', true), 						// true means update the row
+     * 		'password' => DB::udata('123', '456', false), 											// false means don't update
+     *  	'fullname' => DB::udata('Zara Ali', 'Zahraa Alaa', check: ['firstname', 'lastname']), 	// do update if firstname or lastname changed. It should be set after the fields that you want to check
+     * 		'birthdate' => DB::udata('1999-12-20', "DATE()", raw: true), 							// it means passing raw for the new_value to the query
+     * 		'country' => DB::udata('Spain', function() { return 'Sweden'; }) 						// you can use a function to get the new value
+     * ])->where('id = 23')->run(__FILE__, __LINE__);
+     *
+     * @param mixed $old_value The old value
+     * @param mixed $new_value The new value
+     * @param bool $allow Allow update or not
+     * @param array $check Check if array fields changed. It should be set after the fields that you want to check
+     * @param bool $raw Pass raw for the new_value to the query
+     * @return array
+     */
+    public static function udata(mixed $old_value, mixed $new_value, bool $allow = true, array $check = [], bool $raw = false): array
+    {
+        return [$old_value, $new_value, $allow, $check, $raw];
+    }
+}

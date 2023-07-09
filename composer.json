@@ -1,0 +1,20 @@
+{
+  "name": "dilovanmatini/query-builder",
+  "description": "Constructs database queries in PHP that closely resembles writing queries in the SQL native language",
+  "type": "library",
+  "require": {
+    "php": ">=8.1.0"
+  },
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "Dilovan Matini",
+      "email": "dilovan@lelav.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "QueryBuilder\\QB\\": "src/"
+    }
+  }
+}
