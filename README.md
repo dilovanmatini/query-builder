@@ -13,6 +13,8 @@ composer require dilovanmatini/query-builder
 
 ## Usage
 
+With pure PHP:
+
 ```php
 <?php
 
@@ -20,7 +22,32 @@ use Database\QueryBuilder\QB;
 
 require_once __DIR__ . '/vendor/autoload.php';
 
+QB::config([
+    'host' => 'localhost',
+    'database' => 'test',
+    'username' => 'root',
+    'password' => '',
+]);
+
 $user = QB::select('id, name, email')->from('users')->where('id', 1)->and('status', 1)->fetch();
+
+echo $user->name;
+```
+
+<br>
+
+With Laravel:
+
+```php
+<?php
+
+use Database\QueryBuilder\QB;
+
+QB::config([
+    'connection' => DB::connection()->getPdo() // PDO instance
+]);
+
+$user = QB::select('id, name, email')->from(User::class)->where('id', 1)->and('status', 1)->fetch();
 
 echo $user->name;
 ```
