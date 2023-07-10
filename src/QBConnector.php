@@ -75,7 +75,7 @@ class QBConnector
         }
     }
 
-    public static function getConfig($name): mixed
+    public static function getConfig(string $name): mixed
     {
         return static::$config[$name] ?? null;
     }
