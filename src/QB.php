@@ -82,6 +82,7 @@ class QB
     public static function __callStatic(string $method, array $arguments): mixed
     {
         if (in_array($method, self::$statements)) {
+            QBConnector::config();
             $method = str_replace('insertInto', 'insert', $method);
             $method = str_replace('deleteFrom', 'delete', $method);
             $statement = "Database\\QueryBuilder\\QB" . ucfirst($method);
@@ -109,6 +110,11 @@ class QB
     public static function resolve(string $type, mixed $value, mixed $extra_data = null): array
     {
         return (new QBResolver())->$type($value, $extra_data);
+    }
+
+    public static function isLaravel(): bool
+    {
+        return class_exists('Illuminate\Foundation\Application');
     }
 
     /**

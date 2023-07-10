@@ -9,18 +9,37 @@ class QBStatement
      * @throws QBException
      * @return string
      */
-    public function invokeTable(string|Model $table): string
+    public function invokeTable(mixed $table): string
     {
-        if ($table instanceof Model) {
+        $model_class = static::invokeModel();
+
+        if( $table instanceof $model_class){
             $table = $table->getTable();
-        } elseif (str_contains($table, "\\models\\") && class_exists($table)) {
+        }
+        elseif(class_exists($table)){
             $model = new $table();
-            if ($model instanceof Model) {
+            if( $model instanceof $model_class){
                 $table = $model->getTable();
-            } else {
+            }
+            else{
                 throw new QBException('Invalid model class "' . $table . '"');
             }
         }
+
         return $table;
+    }
+
+    public function invokeModel(): mixed
+    {
+        $model_class = QBConnector::getConfig('model_class');
+
+        if (!$model_class && QB::isLaravel()) {
+            $model_class = '\Illuminate\Database\Eloquent\Model';
+        }
+
+        if (class_exists($model_class)) {
+            return $model_class;
+        }
+        return null;
     }
 }
