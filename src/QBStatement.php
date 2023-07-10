@@ -13,16 +13,19 @@ class QBStatement
     {
         $model_class = static::invokeModel();
 
-        if( $table instanceof $model_class){
-            $table = $table->getTable();
-        }
-        elseif(class_exists($table)){
-            $model = new $table();
-            if( $model instanceof $model_class){
-                $table = $model->getTable();
+        if(!is_null($model_class)){
+
+            if( $table instanceof $model_class){
+                $table = $table->getTable();
             }
-            else{
-                throw new QBException('Invalid model class "' . $table . '"');
+            elseif(!is_null($table) && class_exists($table)){
+                $model = new $table();
+                if( $model instanceof $model_class){
+                    $table = $model->getTable();
+                }
+                else{
+                    throw new QBException('Invalid model class "' . $table . '"');
+                }
             }
         }
 
@@ -37,7 +40,7 @@ class QBStatement
             $model_class = '\Illuminate\Database\Eloquent\Model';
         }
 
-        if (class_exists($model_class)) {
+        if (!is_null($model_class) && class_exists($model_class)) {
             return $model_class;
         }
         return null;
