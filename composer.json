@@ -3,9 +3,10 @@
   "description": "Constructs database queries in PHP that closely resembles writing queries in the SQL native language",
   "type": "library",
   "require": {
-    "php": ">=8.1.0"
+    "php": ">=8.1.0",
+    "ext-pdo": "*"
   },
-  "license": "proprietary",
+  "license": "MIT",
   "authors": [
     {
       "name": "Dilovan Matini",
@@ -14,7 +15,7 @@
   ],
   "autoload": {
     "psr-4": {
-      "QueryBuilder\\QB\\": "src/"
+      "Database\\QueryBuilder\\": "src/"
     }
   }
 }
