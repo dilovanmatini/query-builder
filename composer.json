@@ -13,6 +13,7 @@
       "email": "dilovan@lelav.com"
     }
   ],
+  "minimum-stability": "stable",
   "autoload": {
     "psr-4": {
       "Database\\QueryBuilder\\": "src/"
