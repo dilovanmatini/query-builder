@@ -13,7 +13,7 @@ class QBConnector
         return static::$connection;
     }
     public static function config(array $params = []): void {
-        $connection = $params['instance'] ?? null;
+        $connection = $params['connection'] ?? null;
         $host = $params['host'] ?? '127.0.0.1';
         $port = $params['port'] ?? 3306;
         $database = $params['database'] ?? null;
