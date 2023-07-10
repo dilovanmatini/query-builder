@@ -1,6 +1,6 @@
 <?php
 
-use app\core\QueryBuilder\QB;
+use Database\QueryBuilder\QB;
 
 $users = QB::select([
     QB::alias('u', [
@@ -15,8 +15,8 @@ $users = QB::select([
     QB::count('p.id')->as('count'),
     'd.name AS department_name',
     QB::if(
-        QB::col('s.id', QB::isNotNull())->and('b.id', QB::isNull()),
-        QB::col('s.id'),
+        QB::where('s.id', QB::isNotNull())->and('b.id', QB::isNull()),
+        QB::where('s.id'),
         0
     )->as('schedule')
 ])
@@ -25,16 +25,16 @@ $users = QB::select([
     ->innerJoin('departments', 'd')->on('u.department_id = d.id')->and('d.status', QB::param(1))
     ->leftJoin('schedule')->as('s')->on('u.id', 's.user_id')
     ->where('u.status', 1)->and('u.id', 1)->and('u.name', QB::notEmpty())->and('u.email', '')->or(
-        QB::col('u.id', 2)
+        QB::where('u.id', 2)
             ->and('u.name = ""')
             ->and('u.email', '')
             ->or(
-                QB::col('u.id', 3)
+                QB::where('u.id', 3)
                     ->and('u.name', '')
                     ->and('u.email', '')
                     ->and(
                         QB::if(
-                            QB::col('u.id', 4),
+                            QB::where('u.id', 4),
                             'u.name',
                             'u.email'
                         )

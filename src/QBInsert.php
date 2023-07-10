@@ -1,13 +1,7 @@
 <?php
 
-declare(strict_types = 1);
+namespace Database\QueryBuilder;
 
-namespace QueryBuilder\QB;
-
-use app\core\DB;
-use app\core\Model;
-use PDO;
-use PDOStatement;
 use stdClass;
 
 class QBInsert extends QBStatement
@@ -104,12 +98,6 @@ class QBInsert extends QBStatement
             $audit = QB::AUDIT;
         }
 
-        if (is_null($file) || is_null($line)) {
-            $trace = debug_backtrace();
-            $file = $trace[0]['file'] ?? null;
-            $line = $trace[0]['line'] ?? null;
-        }
-
         $raw = $this->raw(true);
 
         [$query, $params] = $this->prepareQuery($raw);
@@ -118,25 +106,26 @@ class QBInsert extends QBStatement
             return null;
         }
 
-        $sql = DB()->execute($query, $params, $file, $line);
-
-        if(!$sql){
-            return null;
-        }
+        $stmt = QBConnector::query($query, $params, $file, $line);
 
         $statement = new \stdClass();
-        $statement->rowCount = $sql->rowCount();
+        $statement->rowCount = $stmt->rowCount();
         $statement->raw = $query;
 
         if ($lastInsertId || $audit) {
-            $conn = DB()->conn;
+            $conn = QBConnector::getConnection();
             $statement->lastInsertId = intval($conn->lastInsertId());
             if($audit){
-                save_actions('add', $raw->table, $statement->lastInsertId, file: $file, line: $line);
+                QBConnector::auditCallback('insert', $raw->table, $statement->lastInsertId, file: $file, line: $line);
             }
         }
 
         return $statement;
+    }
+
+    public function execute($audit = null, $lastInsertId = true, string $file = '', string|int $line = ''): stdClass|null
+    {
+        return $this->run($audit, $lastInsertId, $file, $line);
     }
 
     private function prepareQuery(stdClass $raw): array

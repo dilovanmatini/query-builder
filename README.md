@@ -16,7 +16,7 @@ composer require dilovanmatini/query-builder
 ```php
 <?php
 
-use App\Core\QueryBuilder\QB;
+use Database\QueryBuilder\QB;
 
 require_once __DIR__ . '/vendor/autoload.php';
 
@@ -350,7 +350,7 @@ $user = QB::select()
         ->where('id', 1)
         ->and('status', 1)
         ->and(
-            QB::col('skill', 'php')->or('skill', 'javascript')
+            QB::where('skill', 'php')->or('skill', 'javascript')
         );
 ```
 ```SQL
@@ -677,7 +677,7 @@ $users = QB::select()
         ->where('id', 1)
         ->and('status', 1)
         ->and(
-            QB::col('skill', 'php')->or('skill', 'javascript')
+            QB::where('skill', 'php')->or('skill', 'javascript')
         )
         ->groupBy('skill')
         ->having('COUNT(id)', '>', 10)
@@ -702,7 +702,7 @@ $users = QB::select()
         ->where('id', 1)
         ->and('status', 1)
         ->and(
-            QB::col('skill', 'php')->or('skill', 'javascript')
+            QB::where('skill', 'php')->or('skill', 'javascript')
         )
         ->groupBy('skill')
         ->orderBy('name ASC', 'join_date DESC')
@@ -737,12 +737,12 @@ $users = QB::select(
     ->leftJoin('comments')->as('c')->on('c.post_id', 'p.id')
     ->where('u.status', 1)
     ->and(
-        QB::col('u.skill', 'php')->or('u.skill', 'javascript')
+        QB::where('u.skill', 'php')->or('u.skill', 'javascript')
     )
     ->and('u.join_date', QB::greaterThan('2019-01-01'))
     ->and('u.role',
         QB::if(
-            QB::col('u.role', QB::in('admin', 'super_admin')),
+            QB::where('u.role', QB::in('admin', 'super_admin')),
             'admin',
             'user'
         )

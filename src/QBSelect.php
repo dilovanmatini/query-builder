@@ -1,11 +1,7 @@
 <?php
 
-declare(strict_types = 1);
+namespace Database\QueryBuilder;
 
-namespace QueryBuilder\QB;
-
-use app\core\DB;
-use app\core\Model;
 use PDO;
 use PDOStatement;
 use stdClass;
@@ -340,17 +336,11 @@ class QBSelect extends QBStatement
      */
     private function prepareFetch(string $file = null, int $line = null): PDOStatement|array|false
     {
-        if (is_null($file) || is_null($line)) {
-            $trace = debug_backtrace();
-            $file = $trace[0]['file'] ?? null;
-            $line = $trace[0]['line'] ?? null;
-        }
-
         $raw = $this->raw(true);
 
         [$query, $params] = $this->prepareQuery($raw);
 
-        return DB::query($query, $params, $file, $line);
+        return QBConnector::query($query, $params, $file, $line);
     }
 
     private function prepareQuery(stdClass $raw): array

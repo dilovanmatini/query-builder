@@ -1,8 +1,6 @@
 <?php
 
-declare(strict_types = 1);
-
-namespace QueryBuilder\QB;
+namespace Database\QueryBuilder;
 
 use stdClass;
 
@@ -123,24 +121,22 @@ class QBUpdate extends QBStatement
         if (property_exists($this->data, 'set')) {
             [$set, $param, $audit_data] = QB::resolve('set', $this->data->set);
             $params = array_merge($params, $param ?? []);
-            if($set != ""){
+            if ($set != "") {
                 $affected = true;
             }
             $query .= " SET " . $set;
-        }
-        else{
+        } else {
             throw new QBException("SET clause is required. Ex: ->set(['column' => 'value'])");
         }
         if (property_exists($this->data, 'where')) {
             [$where, $param] = QB::resolve('where', $this->data->where);
             $params = array_merge($params, $param ?? []);
             $query .= " WHERE " . $where;
-        }
-        else{
+        } else {
             throw new QBException("WHERE clause is required. If you want to update all rows, use DB::query with raw SQL instead.");
         }
 
-        if(!$affected){
+        if (!$affected) {
             $query = "";
             $params = [];
         }
@@ -157,42 +153,37 @@ class QBUpdate extends QBStatement
         return $query;
     }
 
-    public function run($audit = null, string $file = null, int $line = null): stdClass|null
+    public function run($audit = null, string $file = null, string|int $line = null): stdClass|null
     {
-        if(is_null($audit)){
+        if (is_null($audit)) {
             $audit = QB::AUDIT;
-        }
-
-        if (is_null($file) || is_null($line)) {
-            $trace = debug_backtrace();
-            $file = $trace[0]['file'] ?? null;
-            $line = $trace[0]['line'] ?? null;
         }
 
         $raw = $this->raw(true);
 
         [$query, $params] = $this->prepareQuery($raw);
 
-        if($query == ""){
+        if ($query == "") {
             return null;
         }
 
-        $sql = DB()->execute($query, $params, $file, $line);
-
-        if(!$sql){
-            return null;
-        }
+        $stmt = QBConnector::query($query, $params, $file, $line);
 
         $statement = new stdClass();
-        $statement->affectedRows = $sql->rowCount();
+        $statement->affectedRows = $stmt->rowCount();
         $statement->affectedAttributes = $raw->audit_data;
         $statement->raw = $query;
 
         if ($audit && !is_null($raw->id) && $raw->id > 0) {
-            save_actions('edit', $raw->table, $raw->id, $raw->audit_data, [], $file, $line);
+            QBConnector::auditCallback('update', $raw->table, $raw->id, $raw->audit_data, $file, $line);
         }
 
         return $statement;
+    }
+
+    public function execute($audit = null, string $file = '', string|int $line = ''): stdClass|null
+    {
+        return $this->run($audit, $file, $line);
     }
 
     private function prepareQuery(stdClass $raw): array

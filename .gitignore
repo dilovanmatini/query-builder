@@ -1,3 +1,7 @@
 .idea
+.idea/**/*
 .DS_Store
 **/.DS_Store
+test
+/vendor/
+composer.lock

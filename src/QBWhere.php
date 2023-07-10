@@ -1,8 +1,6 @@
 <?php
 
-declare(strict_types = 1);
-
-namespace QueryBuilder\QB;
+namespace Database\QueryBuilder;
 
 /**
  * @method QBWhere where(mixed $column, mixed $operator_or_value = null, mixed $value = null)

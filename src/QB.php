@@ -1,8 +1,6 @@
 <?php
 
-declare(strict_types = 1);
-
-namespace QueryBuilder\QB;
+namespace Database\QueryBuilder;
 
 use stdClass;
 
@@ -13,7 +11,7 @@ use stdClass;
  * @method static QBInsert insertInto(string|Model $table)
  * @method static QBDelete delete(string|Model $table, string $as = null)
  * @method static QBDelete deleteFrom(string|Model $table, string $as = null)
- * @method static QBWhere col(mixed $column, mixed $operator_or_value = null, mixed $value = null)
+ * @method static QBWhere where(mixed $column, mixed $operator_or_value = null, mixed $value = null)
  * @method static QBIf if (mixed $condition, mixed $successValue, mixed $failedValue)
  *
  * @method static stdClass equal(mixed $value)
@@ -86,9 +84,9 @@ class QB
         if (in_array($method, self::$statements)) {
             $method = str_replace('insertInto', 'insert', $method);
             $method = str_replace('deleteFrom', 'delete', $method);
-            $statement = "app\\core\\QueryBuilder\\QB" . ucfirst($method);
+            $statement = "Database\\QueryBuilder\\QB" . ucfirst($method);
             return (new $statement())->$method(...$arguments);
-        } elseif ($method == 'col') {
+        } elseif ($method == 'where') {
             return (new QBWhere())->where(...$arguments);
         } elseif (in_array($method, self::$relationalOperators)) {
             $obj = new stdClass();
@@ -103,6 +101,11 @@ class QB
         throw new QBException("Method $method not found");
     }
 
+    public static function config(): void
+    {
+        QBConnector::config(...func_get_args());
+    }
+
     public static function resolve(string $type, mixed $value, mixed $extra_data = null): array
     {
         return (new QBResolver())->$type($value, $extra_data);
@@ -111,13 +114,13 @@ class QB
     /**
      *
      * QB::insert('users')->values([
-     * 		'firstname' => DB::idata('Zahraa'),
-     * 		'lastname' => DB::idata('Alaa'),
-     * 		'email' => DB::idata('zara@yahoo.com', true), 									// true means insert the row
-     * 		'password' => DB::idata('456', false), 											// false means don't insert
-     *  	'fullname' => DB::idata('Zahraa Alaa', check: ['firstname', 'lastname']), 		// do insert if firstname or lastname inserted. It should be set after the fields that you want to check
-     * 		'birthdate' => DB::idata("DATE()", raw: true), 									// it means passing raw for the value to the query
-     * 		'country' => DB::idata(function() { return 'Sweden'; }) 						// you can use a function to get the new value
+     *        'firstname' => DB::idata('Zahraa'),
+     *        'lastname' => DB::idata('Alaa'),
+     *        'email' => DB::idata('zara@yahoo.com', true),                                    // true means insert the row
+     *        'password' => DB::idata('456', false),                                            // false means don't insert
+     *    'fullname' => DB::idata('Zahraa Alaa', check: ['firstname', 'lastname']),        // do insert if firstname or lastname inserted. It should be set after the fields that you want to check
+     *        'birthdate' => DB::idata("DATE()", raw: true),                                    // it means passing raw for the value to the query
+     *        'country' => DB::idata(function() { return 'Sweden'; })                        // you can use a function to get the new value
      * ])->run(__FILE__, __LINE__);
      *
      * @param mixed $value
@@ -133,13 +136,13 @@ class QB
 
     /**
      * QB::update('users')->set([
-     * 		'firstname' => DB::udata('Zara', 'Zahraa'),
-     * 		'lastname' => DB::udata('Ali', 'Alaa'),
-     * 		'email' => DB::udata('zara@gmail.com', 'zara@yahoo.com', true), 						// true means update the row
-     * 		'password' => DB::udata('123', '456', false), 											// false means don't update
-     *  	'fullname' => DB::udata('Zara Ali', 'Zahraa Alaa', check: ['firstname', 'lastname']), 	// do update if firstname or lastname changed. It should be set after the fields that you want to check
-     * 		'birthdate' => DB::udata('1999-12-20', "DATE()", raw: true), 							// it means passing raw for the new_value to the query
-     * 		'country' => DB::udata('Spain', function() { return 'Sweden'; }) 						// you can use a function to get the new value
+     *        'firstname' => DB::udata('Zara', 'Zahraa'),
+     *        'lastname' => DB::udata('Ali', 'Alaa'),
+     *        'email' => DB::udata('zara@gmail.com', 'zara@yahoo.com', true),                        // true means update the row
+     *        'password' => DB::udata('123', '456', false),                                            // false means don't update
+     *    'fullname' => DB::udata('Zara Ali', 'Zahraa Alaa', check: ['firstname', 'lastname']),    // do update if firstname or lastname changed. It should be set after the fields that you want to check
+     *        'birthdate' => DB::udata('1999-12-20', "DATE()", raw: true),                            // it means passing raw for the new_value to the query
+     *        'country' => DB::udata('Spain', function() { return 'Sweden'; })                        // you can use a function to get the new value
      * ])->where('id = 23')->run(__FILE__, __LINE__);
      *
      * @param mixed $old_value The old value

@@ -1,10 +1,7 @@
 <?php
 
-declare(strict_types = 1);
+namespace Database\QueryBuilder;
 
-namespace QueryBuilder\QB;
-
-use app\core\Model;
 use stdClass;
 
 /**
@@ -109,7 +106,7 @@ class QBDelete extends QBStatement
                 if (isset($this->data->delete['as'])) {
                     $query .= " " . $this->data->delete['as'];
                 }
-                $query .= " SET deleted_at = '".APP_DATETIME."'";
+                $query .= " SET deleted_at = '".QBConnector::getConfig('timestamp')."'";
             }
             else{
                 $query .= "DELETE FROM " . $table;
@@ -144,12 +141,6 @@ class QBDelete extends QBStatement
             $audit = QB::AUDIT;
         }
 
-        if (is_null($file) || is_null($line)) {
-            $trace = debug_backtrace();
-            $file = $trace[0]['file'] ?? null;
-            $line = $trace[0]['line'] ?? null;
-        }
-
         $raw = $this->raw(true, $softDelete);
 
         [$query, $params] = $this->prepareQuery($raw);
@@ -158,21 +149,22 @@ class QBDelete extends QBStatement
             return null;
         }
 
-        $sql = DB()->execute($query, $params, $file, $line);
-
-        if(!$sql){
-            return null;
-        }
+        $stmt = QBConnector::query($query, $params, $file, $line);
 
         $statement = new stdClass();
-        $statement->affectedRows = $sql->rowCount();
+        $statement->affectedRows = $stmt->rowCount();
         $statement->raw = $query;
 
         if ($audit && $raw->id > 0) {
-            save_actions('delete', $raw->table, $raw->id, file: $file, line: $line);
+            QBConnector::auditCallback('delete', $raw->table, $raw->id, file: $file, line: $line);
         }
 
         return $statement;
+    }
+
+    public function execute($softDelete = null, $audit = null, string $file = null, string|int $line = null): stdClass|null
+    {
+        return $this->run($softDelete, $audit, $file, $line);
     }
 
     private function prepareQuery(stdClass $raw): array
