@@ -13,7 +13,37 @@ composer require dilovanmatini/query-builder
 
 ## Usage
 
-With pure PHP:
+Using PDO Instance:
+
+```php
+<?php
+
+use Database\QueryBuilder\QB;
+
+require_once __DIR__ . '/vendor/autoload.php';
+
+QB::config([
+    'connection' => $conn // PDO instance
+]);
+
+$user = QB::select('id, name, email')->from('users')->where('id', 1)->and('status', 1)->fetch();
+
+echo $user->name;
+```
+
+In Laravel:
+
+```php
+<?php
+
+use Database\QueryBuilder\QB;
+
+$user = QB::select('id, name, email')->from(User::class)->where('id', 1)->and('status', 1)->fetch();
+
+echo $user->name;
+```
+
+Using Database Credentials:
 
 ```php
 <?php
@@ -35,22 +65,6 @@ echo $user->name;
 ```
 
 <br>
-
-With Laravel:
-
-```php
-<?php
-
-use Database\QueryBuilder\QB;
-
-QB::config([
-    'connection' => DB::connection()->getPdo() // PDO instance
-]);
-
-$user = QB::select('id, name, email')->from(User::class)->where('id', 1)->and('status', 1)->fetch();
-
-echo $user->name;
-```
 
 ## Documentation
 
