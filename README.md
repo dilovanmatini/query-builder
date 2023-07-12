@@ -43,6 +43,8 @@ $user = QB::select('id, name, email')->from(User::class)->where('id', 1)->and('s
 echo $user->name;
 ```
 
+> In Laravel, the connection detects automatically.
+
 Using Database Credentials:
 
 ```php
@@ -68,20 +70,22 @@ echo $user->name;
 
 ## Configuration
 
-|Option| DataType  | Default Value|
-|--|--|--|
-|`connection`|`PDO`|`null`|
-|`audit_callback`|`function`|`null`|
-|`soft_delete`|`bool`|`false`|
-|`soft_delete_column`|`string`|`deleted_at`|
-|`timestamp`|`string`|`now()`|
-|`model_class`|`string`|`null`|
-|`host`|`string`|`127.0.0.1`|
-|`port`|`int`|`3306`|
-|`database`|`string`|`""`|
-|`username`|`string`|`root`|
-|`password`|`string`|`""`|
-|`charset`|`string`|`utf8mb4`|
+|Option| DataType  | Default Value| Explanation                                                                             |
+|--|--|--|-----------------------------------------------------------------------------------------|
+|`connection`|`PDO`|`null`| PDO Instance                                                                            |
+|`audit_callback`|`function`|`null`| The given callback function will be called after executing INSERT, UPDATE, and DELETE queries |
+|`soft_delete`|`bool`|`false`| It provides soft delete functionality                                                   |
+|`soft_delete_column`|`string`|`deleted_at`| It accepts a column name for soft delete functionality                                  |
+|`timestamp`|`string`|`now()`| It accepts a timestamp value for soft delete functionality                              |
+|`model_class`|`string`|`null`| It accepts a Model class name especially for projects using MVC pattern                 |
+|`host`|`string`|`127.0.0.1`| Database host name or IP address                                                        |
+|`port`|`int`|`3306`| Database port number                                                                    |
+|`database`|`string`|`""`| Database name                                                                           |
+|`username`|`string`|`root`| Database username                                                                       |
+|`password`|`string`|`""`| Database password                                                                       |
+|`charset`|`string`|`utf8mb4`| Database charset                                                                        |
+
+>If you set a valid `connection` you don't need to use `host`, `port`, `database`, `username`, `password`, and `charset` options.
 
 <br>
 
