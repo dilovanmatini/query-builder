@@ -70,20 +70,20 @@ echo $user->name;
 
 ## Configuration
 
-|Option| DataType  | Default Value| Explanation                                                                             |
-|--|--|--|-----------------------------------------------------------------------------------------|
-|`connection`|`PDO`|`null`| PDO Instance                                                                            |
-|`audit_callback`|`function`|`null`| The given callback function will be called after executing INSERT, UPDATE, and DELETE queries |
-|`soft_delete`|`bool`|`false`| It provides soft delete functionality                                                   |
-|`soft_delete_column`|`string`|`deleted_at`| It accepts a column name for soft delete functionality                                  |
-|`timestamp`|`string`|`now()`| It accepts a timestamp value for soft delete functionality                              |
-|`model_class`|`string`|`null`| It accepts a Model class name especially for projects using MVC pattern                 |
-|`host`|`string`|`127.0.0.1`| Database host name or IP address                                                        |
-|`port`|`int`|`3306`| Database port number                                                                    |
-|`database`|`string`|`""`| Database name                                                                           |
-|`username`|`string`|`root`| Database username                                                                       |
-|`password`|`string`|`""`| Database password                                                                       |
-|`charset`|`string`|`utf8mb4`| Database charset                                                                        |
+|Option| DataType  | Default Value| Explanation                                                                                                   |
+|--|--|--|---------------------------------------------------------------------------------------------------------------|
+|`connection`|`PDO`|`null`| PDO Instance                                                                                                  |
+|`audit_callback`|`function`|`null`| The given callback function will be called after executing INSERT, UPDATE, and DELETE queries                 |
+|`soft_delete`|`bool`|`false`| It provides soft delete functionality                                                                         |
+|`soft_delete_column`|`string`|`deleted_at`| It accepts a column name for soft delete functionality                                                        |
+|`timestamp`|`string`|`now()`| It accepts a timestamp value for soft delete functionality                                                    |
+|`model_class`|`string`|`null`| It accepts a Model class name especially for projects using MVC pattern. In Laravel, you don't need to set it |
+|`host`|`string`|`127.0.0.1`| Database host name or IP address                                                                              |
+|`port`|`int`|`3306`| Database port number                                                                                          |
+|`database`|`string`|`""`| Database name                                                                                                 |
+|`username`|`string`|`root`| Database username                                                                                             |
+|`password`|`string`|`""`| Database password                                                                                             |
+|`charset`|`string`|`utf8mb4`| Database charset                                                                                              |
 
 >If you set a valid `connection` you don't need to use `host`, `port`, `database`, `username`, `password`, and `charset` options.
 
