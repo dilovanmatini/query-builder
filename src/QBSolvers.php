@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * @package     QueryBuilder
+ * @link        https://github.com/dilovanmatini/query-builder
+ * @license     MIT License
+ */
 namespace Database\QueryBuilder;
 
 use stdClass;
@@ -12,7 +16,7 @@ trait QBSolvers
     {
         $this->permittedSTDClass['column_alias'] = ['alias'];
         $this->permittedSTDClass['if_column'] = ['now', 'param'];
-        $this->permittedSTDClass['second_column'] = ['raw', 'now', 'param', ...QB::$relationalOperators];
+        $this->permittedSTDClass['second_column'] = ['raw', 'now', 'param', ...QB::$comparisonOperators];
         $this->permittedSTDClass['third_column'] = ['raw', 'now', 'param'];
         $this->permittedSTDClass['value'] = ['now', 'param'];
     }

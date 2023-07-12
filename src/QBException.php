@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * @package     QueryBuilder
+ * @link        https://github.com/dilovanmatini/query-builder
+ * @license     MIT License
+ */
 namespace Database\QueryBuilder;
 
 use Exception;

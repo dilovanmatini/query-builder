@@ -1,8 +1,10 @@
 <?php
-
+/**
+ * @package     QueryBuilder
+ * @link        https://github.com/dilovanmatini/query-builder
+ * @license     MIT License
+ */
 namespace Database\QueryBuilder;
-
-use stdClass;
 
 /**
  * @method QBSelect and (mixed $column, mixed $operator_or_value = null, mixed $value = null)
@@ -10,16 +12,16 @@ use stdClass;
  */
 class QBUpdate extends QBStatement
 {
-    private object $data;
-
     public function __construct()
     {
-        $this->data = new stdClass();
-        $this->setState('');
-        $this->setMethod('');
+        parent::__construct();
     }
 
     /**
+     * Receives all unknown method calls.
+     * @param string $method
+     * @param array $arguments
+     * @return QBUpdate
      * @throws QBException
      */
     public function __call(string $method, array $arguments): self
@@ -40,6 +42,15 @@ class QBUpdate extends QBStatement
         return $this;
     }
 
+    /**
+     * Selects the table to update.
+     * ->update('table_name')
+     * ->update(Model::class)
+     * @param string|Model $table The table name or the model class
+     * @param string|null $as The alias of the table
+     * @return QBUpdate
+     * @throws QBException
+     */
     public function update(string|Model $table, string $as = null): self
     {
         $this->checkOrder('update', ['' => ['']]);
@@ -54,6 +65,13 @@ class QBUpdate extends QBStatement
         return $this;
     }
 
+    /**
+     * Sets the alias of the table.
+     *->as('alias')
+     * @param string $alias
+     * @return QBUpdate
+     * @throws QBException
+     */
     public function as(string $alias): self
     {
         $this->checkOrder('as', [
@@ -68,6 +86,14 @@ class QBUpdate extends QBStatement
         return $this;
     }
 
+    /**
+     * Sets the columns to update.
+     * ->set('column_name1 = value1, column_name2 = value2')
+     * ->set(['column_name1' => 'value1', 'column_name2' => 'value2'])
+     * @param string|array $data
+     * @return QBUpdate
+     * @throws QBException
+     */
     public function set(string|array $data): self
     {
         $this->checkOrder('set', [
@@ -81,6 +107,17 @@ class QBUpdate extends QBStatement
         return $this;
     }
 
+    /**
+     * Sets the conditions of the WHERE clause.
+     * ->where('column = value')
+     * ->where('column', 'value')
+     * ->where('column', 'operator', 'value')
+     * @param mixed $column
+     * @param mixed|null $operator_or_value
+     * @param mixed|null $value
+     * @return QBUpdate
+     * @throws QBException
+     */
     public function where(mixed $column, mixed $operator_or_value = null, mixed $value = null): self
     {
         $this->checkOrder('where', [
@@ -97,15 +134,32 @@ class QBUpdate extends QBStatement
         return $this;
     }
 
-    public function raw($withParams = false): string|stdClass
+    /**
+     * To get the query string and parameters. If the $withParams parameter is true, the return
+     * value will be an object. Otherwise, it will be a string.
+     * ->raw() // to get the query string
+     * ->raw(true) // to get the query string and parameters
+     * Example of return value when $withParams is true:
+     *  $obj->query; // The query string
+     *  $obj->params; // The parameters as an array
+     *  $obj->table // The table name
+     *  $obj->id // The last updated id
+     *  $obj->audit_data // The audit data as an array
+     * @param bool $withParams
+     * @return string|\stdClass
+     * @throws QBException
+     */
+    public function raw(bool $withParams = false): string|\stdClass
     {
         return $this->buildQuery($withParams);
     }
 
     /**
+     * @param bool $withParams
+     * @return string|\stdClass
      * @throws QBException
      */
-    public function buildQuery($withParams = false): string|stdClass
+    public function buildQuery(bool $withParams = false): string|\stdClass
     {
         $query = "";
         $params = [];
@@ -133,7 +187,7 @@ class QBUpdate extends QBStatement
             $params = array_merge($params, $param ?? []);
             $query .= " WHERE " . $where;
         } else {
-            throw new QBException("WHERE clause is required. If you want to update all rows, use DB::query with raw SQL instead.");
+            throw new QBException("WHERE clause is required. If you want to update all rows, use raw SQL query instead.");
         }
 
         if (!$affected) {
@@ -142,7 +196,7 @@ class QBUpdate extends QBStatement
         }
 
         if ($withParams) {
-            $obj = new stdClass();
+            $obj = new \stdClass();
             $obj->query = $query;
             $obj->params = $params;
             $obj->table = $table;
@@ -153,10 +207,24 @@ class QBUpdate extends QBStatement
         return $query;
     }
 
-    public function run($audit = null, string $file = null, string|int $line = null): stdClass|null
+    /**
+     * Runs the query and returns an stdClass object.
+     * ->run()
+     * ->run(true) // To audit the query
+     * Example of return value:
+     * $obj->affectedRows // The number of affected rows
+     * $obj->affectedAttributes // The number of affected attributes/columns
+     * $obj->raw // The raw query string
+     * @param bool|null $audit If true, the query will be audited. If null, the value from QBConfig will be used.
+     * @param string|null $file The file name where the method is called. Used for debugging.
+     * @param string|int|null $line The line number where the method is called. Used for debugging.
+     * @return \stdClass|null
+     * @throws QBException
+     */
+    public function run(bool $audit = null, string $file = null, string|int $line = null): \stdClass|null
     {
         if (is_null($audit)) {
-            $audit = QB::AUDIT;
+            $audit = QBConfig::get('audit');
         }
 
         $raw = $this->raw(true);
@@ -169,69 +237,34 @@ class QBUpdate extends QBStatement
 
         $stmt = QBConnector::query($query, $params, $file, $line);
 
-        $statement = new stdClass();
+        $statement = new \stdClass();
         $statement->affectedRows = $stmt->rowCount();
         $statement->affectedAttributes = $raw->audit_data;
         $statement->raw = $query;
 
         if ($audit && !is_null($raw->id) && $raw->id > 0) {
-            QBConnector::auditCallback('update', $raw->table, $raw->id, $raw->audit_data, $file, $line);
+            QBConfig::auditCallback('update', $raw->table, $raw->id, $raw->audit_data, $file, $line);
         }
 
         return $statement;
     }
 
-    public function execute($audit = null, string $file = '', string|int $line = ''): stdClass|null
-    {
-        return $this->run($audit, $file, $line);
-    }
-
-    private function prepareQuery(stdClass $raw): array
-    {
-        $prepared_params = [];
-        foreach ($raw->params as $obj) {
-            while (array_key_exists($obj->key, $prepared_params)) {
-                $old_key = $obj->key;
-                $obj->key = 'param' . substr(md5((string)rand()), 0, 10);
-                $raw->query = str_replace($old_key, $obj->key, $raw->query);
-            }
-            $prepared_params[$obj->key] = $obj->value;
-        }
-        return [$raw->query, $prepared_params];
-    }
-
     /**
-     * @param string $state - the current state to be checked
-     * @param array $prevStates - array of previous states and methods to guarantee the order of states and methods
-     * @return void
+     * Executes the query and returns an stdClass object.
+     * ->execute()
+     * ->execute(true) // To audit the query
+     * Example of return value:
+     * $obj->affectedRows // The number of affected rows
+     * $obj->affectedAttributes // The number of affected attributes/columns
+     * $obj->raw // The raw query string
+     * @param bool|null $audit If true, the query will be audited. If null, the value from QBConfig will be used.
+     * @param string|null $file The file name where the method is called. Used for debugging.
+     * @param string|int|null $line The line number where the method is called. Used for debugging.
+     * @return \stdClass|null
      * @throws QBException
      */
-    private function checkOrder(string $state, array $prevStates): void
+    public function execute(bool $audit = null, string $file = null, string|int $line = null): \stdClass|null
     {
-        foreach ($prevStates as $key => $value) {
-            if ($this->data->prevState == $key && in_array($this->data->prevMethod, $value)) {
-                return;
-            }
-        }
-
-        if (!in_array($this->data->prevState, array_keys($prevStates))) {
-            $afterMethod = $this->data->prevState;
-        } else {
-            $afterMethod = $this->data->prevMethod;
-        }
-
-        if ($afterMethod != '') {
-            throw new QBException("Invalid order of actions: " . strtoupper($state) . " after " . strtoupper($afterMethod));
-        }
-    }
-
-    private function setState(string $state): void
-    {
-        $this->data->prevState = $state;
-    }
-
-    private function setMethod(string $method): void
-    {
-        $this->data->prevMethod = $method;
+        return $this->run($audit, $file, $line);
     }
 }

@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * @package     QueryBuilder
+ * @link        https://github.com/dilovanmatini/query-builder
+ * @license     MIT License
+ */
 namespace Database\QueryBuilder;
 
 use stdClass;
@@ -10,16 +14,17 @@ use stdClass;
  */
 class QBDelete extends QBStatement
 {
-    private object $data;
 
     public function __construct()
     {
-        $this->data = new stdClass();
-        $this->setState('');
-        $this->setMethod('');
+        parent::__construct();
     }
 
     /**
+     * Receives all unknown method calls.
+     * @param string $method
+     * @param array $arguments
+     * @return QBDelete
      * @throws QBException
      */
     public function __call(string $method, array $arguments): self
@@ -38,6 +43,15 @@ class QBDelete extends QBStatement
         return $this;
     }
 
+    /**
+     * Selects the table to delete from.
+     * ->delete('table_name')
+     * ->delete(Model::class)
+     * @param string|Model $table
+     * @param string|null $as
+     * @return QBDelete
+     * @throws QBException
+     */
     public function delete(string|Model $table, string $as = null): self
     {
         $this->checkOrder('delete', ['' => ['']]);
@@ -52,6 +66,13 @@ class QBDelete extends QBStatement
         return $this;
     }
 
+    /**
+     * Sets the alias of the table.
+     * ->as('alias')
+     * @param string $alias
+     * @return QBDelete
+     * @throws QBException
+     */
     public function as(string $alias): self
     {
         $this->checkOrder('as', [
@@ -66,6 +87,17 @@ class QBDelete extends QBStatement
         return $this;
     }
 
+    /**
+     * Sets the conditions of the WHERE clause.
+     * ->where('column = value')
+     * ->where('column', 'value')
+     * ->where('column', 'operator', 'value')
+     * @param mixed $column
+     * @param mixed|null $operator_or_value
+     * @param mixed|null $value
+     * @return QBDelete
+     * @throws QBException
+     */
     public function where(mixed $column, mixed $operator_or_value = null, mixed $value = null): self
     {
         $this->checkOrder('where', [
@@ -82,18 +114,37 @@ class QBDelete extends QBStatement
         return $this;
     }
 
-    public function raw($withParams = false, bool $softDelete = null): string|stdClass
+    /**
+     * To get the query string and parameters. If the $withParams parameter is true, the return
+     * value will be an object. Otherwise, it will be a string.
+     * ->raw() // to get the query string
+     * ->raw(true) // to get the query string and parameters
+     * ->row(true, true) // to get the query string and enable soft delete
+     * Example of return value when $withParams is true:
+     *  $obj->query; // The query string
+     *  $obj->params; // The parameters as an array
+     *  $obj->table; // The table name
+     *  $obj->id; // The id of the deleted row
+     * @param bool $withParams
+     * @param bool|null $softDelete
+     * @return string|stdClass
+     * @throws QBException
+     */
+    public function raw(bool $withParams = false, bool $softDelete = null): string|stdClass
     {
         return $this->buildQuery($withParams, $softDelete);
     }
 
     /**
+     * @param bool $withParams If true, returns an object. Otherwise, returns a string.
+     * @param bool|null $softDelete If true, soft delete will be used. Otherwise, hard delete will be used.
+     * @return string|stdClass
      * @throws QBException
      */
-    public function buildQuery($withParams = false, bool $softDelete = null): string|stdClass
+    public function buildQuery(bool $withParams = false, bool $softDelete = null): string|stdClass
     {
         if(is_null($softDelete)){
-            $softDelete = QB::SOFT_DELETE;
+            $softDelete = QBConfig::get('soft_delete');
         }
 
         $query = "";
@@ -106,7 +157,8 @@ class QBDelete extends QBStatement
                 if (isset($this->data->delete['as'])) {
                     $query .= " " . $this->data->delete['as'];
                 }
-                $query .= " SET deleted_at = '".QBConnector::getConfig('timestamp')."'";
+                $soft_delete_column = QBConfig::get('soft_delete_column');
+                $query .= " SET $soft_delete_column = IF($soft_delete_column IS NULL, '".QBConfig::get('timestamp')."', $soft_delete_column)";
             }
             else{
                 $query .= "DELETE FROM " . $table;
@@ -121,7 +173,7 @@ class QBDelete extends QBStatement
             $query .= " WHERE " . $where;
         }
         else{
-            throw new QBException("WHERE clause is required. If you want to delete all rows, use DB::query with raw SQL instead.");
+            throw new QBException("WHERE clause is required. If you want to delete all rows, use raw SQL query instead.");
         }
 
         if ($withParams) {
@@ -135,10 +187,23 @@ class QBDelete extends QBStatement
         return $query;
     }
 
-    public function run($softDelete = null, $audit = null, string $file = null, int $line = null): stdClass|null
+    /**
+     * Runs the query and returns an stdClass object.
+     * ->run()
+     * ->run(true) // Soft delete
+     * ->run(false) // Hard delete
+     * ->run(true, true) // Soft delete and audit
+     * @param bool|null $softDelete If true, soft delete will be used. Otherwise, hard delete will be used.
+     * @param bool|null $audit If true, audit will be used. Otherwise, audit will not be used.
+     * @param string|null $file The file name where the method is called. Used for debugging.
+     * @param string|int|null $line The line number where the method is called. Used for debugging.
+     * @return stdClass|null
+     * @throws QBException
+     */
+    public function run(bool $softDelete = null, bool $audit = null, string $file = null, string|int $line = null): stdClass|null
     {
         if(is_null($audit)){
-            $audit = QB::AUDIT;
+            $audit = QBConfig::get('audit');
         }
 
         $raw = $this->raw(true, $softDelete);
@@ -156,63 +221,27 @@ class QBDelete extends QBStatement
         $statement->raw = $query;
 
         if ($audit && $raw->id > 0) {
-            QBConnector::auditCallback('delete', $raw->table, $raw->id, file: $file, line: $line);
+            QBConfig::auditCallback('delete', $raw->table, $raw->id, file: $file, line: $line);
         }
 
         return $statement;
     }
 
-    public function execute($softDelete = null, $audit = null, string $file = null, string|int $line = null): stdClass|null
-    {
-        return $this->run($softDelete, $audit, $file, $line);
-    }
-
-    private function prepareQuery(stdClass $raw): array
-    {
-        $prepared_params = [];
-        foreach ($raw->params as $obj) {
-            while (array_key_exists($obj->key, $prepared_params)) {
-                $old_key = $obj->key;
-                $obj->key = 'param' . substr(md5((string)rand()), 0, 10);
-                $raw->query = str_replace($old_key, $obj->key, $raw->query);
-            }
-            $prepared_params[$obj->key] = $obj->value;
-        }
-        return [$raw->query, $prepared_params];
-    }
-
     /**
-     * @param string $state - the current state to be checked
-     * @param array $prevStates - array of previous states and methods to guarantee the order of states and methods
-     * @return void
+     * Executes the query and returns an stdClass object.
+     * ->execute()
+     * ->execute(true) // Soft delete
+     * ->execute(false) // Hard delete
+     * ->execute(true, true) // Soft delete and audit
+     * @param bool|null $softDelete If true, soft delete will be used. Otherwise, hard delete will be used.
+     * @param bool|null $audit If true, audit will be used. Otherwise, audit will not be used.
+     * @param string|null $file The file name where the method is called. Used for debugging.
+     * @param string|int|null $line The line number where the method is called. Used for debugging.
+     * @return stdClass|null
      * @throws QBException
      */
-    private function checkOrder(string $state, array $prevStates): void
+    public function execute(bool $softDelete = null, bool $audit = null, string $file = null, string|int $line = null): stdClass|null
     {
-        foreach ($prevStates as $key => $value) {
-            if ($this->data->prevState == $key && in_array($this->data->prevMethod, $value)) {
-                return;
-            }
-        }
-
-        if (!in_array($this->data->prevState, array_keys($prevStates))) {
-            $afterMethod = $this->data->prevState;
-        } else {
-            $afterMethod = $this->data->prevMethod;
-        }
-
-        if ($afterMethod != '') {
-            throw new QBException("Invalid order of actions: " . strtoupper($state) . " after " . strtoupper($afterMethod));
-        }
-    }
-
-    private function setState(string $state): void
-    {
-        $this->data->prevState = $state;
-    }
-
-    private function setMethod(string $method): void
-    {
-        $this->data->prevMethod = $method;
+        return $this->run($softDelete, $audit, $file, $line);
     }
 }

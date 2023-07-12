@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * @package     QueryBuilder
+ * @link        https://github.com/dilovanmatini/query-builder
+ * @license     MIT License
+ */
 namespace Database\QueryBuilder;
 
 use stdClass;
@@ -44,20 +48,11 @@ class QB
     use QBHelpers;
 
     /**
-     * To enable audit globally
-     * @var string
+     * @var array $queryTypes Query types
      */
-    const AUDIT = true;
+    public static array $queryTypes = ['select', 'update', 'insert', 'insertInto', 'delete', 'deleteFrom'];
 
-    /**
-     * To enable soft delete globally
-     * @var string
-     */
-    const SOFT_DELETE = true;
-
-    public static array $statements = ['select', 'update', 'insert', 'insertInto', 'delete', 'deleteFrom'];
-
-    public static array $joinMethods = [
+    public static array $joinTypes = [
         'leftJoin' => 'LEFT JOIN',
         'rightJoin' => 'RIGHT JOIN',
         'crossJoin' => 'CROSS JOIN',
@@ -65,36 +60,49 @@ class QB
         'fullJoin' => 'FULL JOIN',
     ];
 
-    public static array $relationalOperators = [
+    /**
+     * @var array $comparisonOperators Comparison operators
+     */
+    public static array $comparisonOperators = [
         'equal', 'notEqual', 'greaterThan', 'lessThan', 'greaterThanOrEqual', 'lessThanOrEqual', 'like', 'notLike',
         'between', 'notBetween', 'in', 'notIn', 'isNull', 'isNotNull', 'isEmpty', 'isNotEmpty'
     ];
 
-    public static array $relationalPureOperators = ['=', '!=', '>', '<', '>=', '<=', 'LIKE', 'NOT LIKE', 'BETWEEN', 'NOT BETWEEN', 'IN', 'NOT IN'];
+    /**
+     * @var array $comparisonPureOperators Comparison operators
+     */
+    public static array $comparisonPureOperators = ['=', '!=', '>', '<', '>=', '<=', 'LIKE', 'NOT LIKE', 'BETWEEN', 'NOT BETWEEN', 'IN', 'NOT IN'];
 
-    public static array $aggregateFunctions = [
+    /**
+     * @var array $aggregationFunctions Aggregation functions
+     */
+    public static array $aggregationFunctions = [
         'count', 'sum', 'min', 'max', 'avg', 'distinct'
     ];
 
     /**
+     * Receives all unknown static method calls.
+     * @param string $method
+     * @param array $arguments
+     * @return mixed
      * @throws QBException
      */
     public static function __callStatic(string $method, array $arguments): mixed
     {
-        if (in_array($method, self::$statements)) {
-            QBConnector::config();
+        if (in_array($method, self::$queryTypes)) {
+            QBConfig::init();
             $method = str_replace('insertInto', 'insert', $method);
             $method = str_replace('deleteFrom', 'delete', $method);
             $statement = "Database\\QueryBuilder\\QB" . ucfirst($method);
             return (new $statement())->$method(...$arguments);
         } elseif ($method == 'where') {
             return (new QBWhere())->where(...$arguments);
-        } elseif (in_array($method, self::$relationalOperators)) {
+        } elseif (in_array($method, self::$comparisonOperators)) {
             $obj = new stdClass();
             $obj->name = $method;
             $obj->arguments = $arguments;
             return $obj;
-        } elseif (in_array($method, self::$aggregateFunctions)) {
+        } elseif (in_array($method, self::$aggregationFunctions)) {
             return (new QBAggregate())->$method(...$arguments);
         } elseif ($method == 'if') {
             return (new QBIf())->if(...$arguments);
@@ -102,16 +110,43 @@ class QB
         throw new QBException("Method $method not found");
     }
 
-    public static function config(): void
+    /**
+     * @param array $params Config parameters
+     * @example QB::config([
+     *      'audit_callback' => null,
+     *      'soft_delete' => false,
+     *      'soft_delete_column' => 'deleted_at',
+     *      'timestamp' => date('Y-m-d H:i:s'),
+     *      'model_class' => null,
+     *      'host' => 'localhost',
+     *      'port' => 3306,
+     *      'database' => 'test',
+     *      'username' => 'root',
+     *      'password' => '',
+     *      'charset' => 'utf8',
+     * ]);
+     * @return void
+     */
+    public static function config(array $params): void
     {
-        QBConnector::config(...func_get_args());
+        QBConfig::set(...func_get_args());
     }
 
+    /**
+     * Resolve the value and return the value and the type
+     * @param string $type
+     * @param mixed $value
+     * @param mixed|null $extra_data
+     * @return array
+     */
     public static function resolve(string $type, mixed $value, mixed $extra_data = null): array
     {
         return (new QBResolver())->$type($value, $extra_data);
     }
 
+    /**
+     * @return bool
+     */
     public static function isLaravel(): bool
     {
         return class_exists('Illuminate\Foundation\Application');
@@ -146,7 +181,7 @@ class QB
      *        'lastname' => DB::udata('Ali', 'Alaa'),
      *        'email' => DB::udata('zara@gmail.com', 'zara@yahoo.com', true),                        // true means update the row
      *        'password' => DB::udata('123', '456', false),                                            // false means don't update
-     *    'fullname' => DB::udata('Zara Ali', 'Zahraa Alaa', check: ['firstname', 'lastname']),    // do update if firstname or lastname changed. It should be set after the fields that you want to check
+     *        'fullname' => DB::udata('Zara Ali', 'Zahraa Alaa', check: ['firstname', 'lastname']),    // do update if firstname or lastname changed. It should be set after the fields that you want to check
      *        'birthdate' => DB::udata('1999-12-20', "DATE()", raw: true),                            // it means passing raw for the new_value to the query
      *        'country' => DB::udata('Spain', function() { return 'Sweden'; })                        // you can use a function to get the new value
      * ])->where('id = 23')->run(__FILE__, __LINE__);

@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * @package     QueryBuilder
+ * @link        https://github.com/dilovanmatini/query-builder
+ * @license     MIT License
+ */
 namespace Database\QueryBuilder;
 
 use stdClass;
@@ -240,7 +244,7 @@ class QBResolver
             [$if, $params] = $this->if($value);
             return ["= " . $if, $params];
         } elseif ($value instanceof stdClass) {
-            if(!in_array($value->name, QB::$relationalOperators)){
+            if(!in_array($value->name, QB::$comparisonOperators)){
                 [$helper, $params] = $this->stdClass('second_column', $value);
                 return ["= " . $helper, $params];
             }
@@ -446,7 +450,7 @@ class QBResolver
     public function checkOperator(string $value): string
     {
         $value = strtoupper($value);
-        if (in_array($value, QB::$relationalPureOperators)) {
+        if (in_array($value, QB::$comparisonPureOperators)) {
             return $value;
         }
         throw new QBException('Invalid operator');

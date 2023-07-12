@@ -66,6 +66,25 @@ echo $user->name;
 
 <br>
 
+## Configuration
+
+|Option| DataType  | Default Value|
+|--|--|--|
+|`connection`|`PDO`|`null`|
+|`audit_callback`|`function`|`null`|
+|`soft_delete`|`bool`|`false`|
+|`soft_delete_column`|`string`|`deleted_at`|
+|`timestamp`|`string`|`now()`|
+|`model_class`|`string`|`null`|
+|`host`|`string`|`127.0.0.1`|
+|`port`|`int`|`3306`|
+|`database`|`string`|`""`|
+|`username`|`string`|`root`|
+|`password`|`string`|`""`|
+|`charset`|`string`|`utf8mb4`|
+
+<br>
+
 ## Documentation
 
 - [Select](#select)
