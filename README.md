@@ -85,7 +85,7 @@ echo $user->name;
 |`password`|`string`|`""`| Database password                                                                                             |
 |`charset`|`string`|`utf8mb4`| Database charset                                                                                              |
 
->If you set a valid `connection` you don't need to use `host`, `port`, `database`, `username`, `password`, and `charset` options.
+>If you set a valid `connection` you don't need to set `host`, `port`, `database`, `username`, `password`, and `charset` options.
 
 <br>
 
