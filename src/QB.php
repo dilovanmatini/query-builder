@@ -90,7 +90,6 @@ class QB
     public static function __callStatic(string $method, array $arguments): mixed
     {
         if (in_array($method, self::$queryTypes)) {
-            QBConfig::init();
             $method = str_replace('insertInto', 'insert', $method);
             $method = str_replace('deleteFrom', 'delete', $method);
             $statement = "Database\\QueryBuilder\\QB" . ucfirst($method);
@@ -113,10 +112,7 @@ class QB
     /**
      * @param array $params Config parameters
      * @example QB::config([
-     *      'audit_callback' => null,
-     *      'soft_delete' => false,
-     *      'soft_delete_column' => 'deleted_at',
-     *      'timestamp' => date('Y-m-d H:i:s'),
+     *      'connection' => null,
      *      'model_class' => null,
      *      'host' => 'localhost',
      *      'port' => 3306,
@@ -139,9 +135,10 @@ class QB
      * @param mixed|null $extra_data
      * @return array
      */
-    public static function resolve(string $type, mixed $value, mixed $extra_data = null): array
+    public static function resolve(...$args): array
     {
-        return (new QBResolver())->$type($value, $extra_data);
+        $type = array_shift($args);
+        return (new QBResolver())->$type(...$args);
     }
 
     /**

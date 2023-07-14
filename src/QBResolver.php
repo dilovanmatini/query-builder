@@ -137,7 +137,7 @@ class QBResolver
                 if ($key != 'where') {
                     $operations[] = strtoupper($key);
                 }
-                [$operation, $param, $id] = $this->operation($value, $rawData);
+                [$operation, $param, $id] = array_pad($this->operation($value, $rawData), 3, 0);
                 $operations[] = $operation;
                 $params = $this->addParam($params, $param);
                 if( $id > 0 ){
@@ -279,7 +279,7 @@ class QBResolver
     /**
      * @throws QBException
      */
-    public function set(string|array $data): array
+    public function set(string|array $data, QBUpdate $update): array
     {
         if(is_string($data)){
             return [$data, [], []];
@@ -347,6 +347,16 @@ class QBResolver
                 return ["", [], []];
             }
 
+            $updated_callback = $update->config('updated_callback');
+            if(is_callable($updated_callback)){
+                $data = $updated_callback();
+                foreach ($data as $key => $value) {
+                    if($key != "" && $value != ""){
+                        $fields[$key] = "$key = '$value'";
+                    }
+                }
+            }
+
             return [implode(", ", $fields), $params, $audit_data];
         }
         throw new QBException('Invalid set value');
@@ -355,7 +365,7 @@ class QBResolver
     /**
      * @throws QBException
      */
-    public function insertValues(string|array $data, array|string|null $columns): array
+    public function insertValues(string|array $data, array|string|null $columns, QBInsert $insert): array
     {
         if(is_string($data)){
             if(!is_null($columns) && !is_string($columns)){
@@ -407,6 +417,11 @@ class QBResolver
                     $value = $value($field, $allow, $check, $raw);
                 }
 
+                if( $value instanceof \stdClass ){
+                    [$value] = $this->stdClass('insert_value', $value);
+                    $raw = true;
+                }
+
                 // skip this row if $allow is false
                 if(!$allow){
                     continue;
@@ -437,6 +452,17 @@ class QBResolver
             }
             if (count($fields) == 0) {
                 return ["", "", []];
+            }
+
+            $created_callback = $insert->config('created_callback');
+            if(is_callable($created_callback)){
+                $data = $created_callback();
+                foreach ($data as $key => $value) {
+                    if($key != "" && $value != ""){
+                        $fields[] = $key;
+                        $values[] = "'$value'";
+                    }
+                }
             }
 
             return [implode(", ", $fields), implode(", ", $values), $params];

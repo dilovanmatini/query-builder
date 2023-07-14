@@ -111,10 +111,15 @@ class QBInsert extends QBStatement
             $query .= "INSERT INTO " . $table;
         }
         if (property_exists($this->data, 'values')) {
-            [$columns, $values, $param] = QB::resolve('insertValues', $this->data->values, $this->data?->columns ?? null);
+            [$columns, $values, $param] = QB::resolve('insertValues', $this->data->values, $this->data?->columns ?? null, $this);
             $params = array_merge($params, $param ?? []);
 
-            $query .= " ($columns) VALUES ($values)";
+            if(empty($columns) || empty($values)){
+                $query = "";
+            }
+            else{
+                $query .= " ($columns) VALUES ($values)";
+            }
         }
         else{
             throw new QBException("VALUES clause is required. Ex: ->values(['column' => 'value'])");
@@ -133,25 +138,19 @@ class QBInsert extends QBStatement
     /**
      * Runs the query and returns an stdClass object.
      * ->run()
-     * ->run(true) // To enable audit
-     * ->run(true, false) // To disable getting last insert id
+     * ->run(false) // To disable getting last insert id
      * Example of return value:
      * $obj->rowCount; // The number of rows affected.
      * $obj->raw // The raw query string.
      * $obj->lastInsertId // The last insert id. Only available if the $lastInsertId parameter is true.
-     * @param bool|null $audit If true, the audit callback will be called.
      * @param bool $lastInsertId If true, the last insert id will be returned.
      * @param string|null $file The file name where the method is called. Used for debugging.
      * @param string|int|null $line The line number where the method is called. Used for debugging.
      * @return \stdClass|null
      * @throws QBException
      */
-    public function run(bool $audit = null, bool $lastInsertId = true, string $file = null, string|int $line = null): \stdClass|null
+    public function run(bool $lastInsertId = true, string $file = null, string|int $line = null): \stdClass|null
     {
-        if(is_null($audit)){
-            $audit = QBConfig::get('audit');
-        }
-
         $raw = $this->raw(true);
 
         [$query, $params] = $this->prepareQuery($raw);
@@ -166,11 +165,13 @@ class QBInsert extends QBStatement
         $statement->rowCount = $stmt->rowCount();
         $statement->raw = $query;
 
-        if ($lastInsertId || $audit) {
+        if ($lastInsertId) {
             $conn = QBConnector::getConnection();
             $statement->lastInsertId = intval($conn->lastInsertId());
-            if($audit){
-                QBConfig::auditCallback('insert', $raw->table, $statement->lastInsertId, file: $file, line: $line);
+
+            $audit_callback = $this->config('audit_callback');
+            if(is_callable($audit_callback)){
+                $audit_callback('insert', $raw->table, $statement->lastInsertId, null);
             }
         }
 
@@ -180,21 +181,19 @@ class QBInsert extends QBStatement
     /**
      * Executes the query and returns an stdClass object.
      * ->execute()
-     * ->execute(true) // To enable audit
-     * ->execute(true, false) // To disable getting last insert id
+     * ->execute(false) // To disable getting last insert id
      * Example of return value:
      * $obj->rowCount; // The number of rows affected.
      * $obj->raw // The raw query string.
      * $obj->lastInsertId // The last insert id. Only available if the $lastInsertId parameter is true.
-     * @param bool|null $audit If true, the audit callback will be called.
      * @param bool $lastInsertId If true, the last insert id will be returned.
      * @param string|null $file The file name where the method is called. Used for debugging.
      * @param string|int|null $line The line number where the method is called. Used for debugging.
      * @return \stdClass|null
      * @throws QBException
      */
-    public function execute(bool $audit = null, bool $lastInsertId = true, string $file = null, string|int $line = null): \stdClass|null
+    public function execute(bool $lastInsertId = true, string $file = null, string|int $line = null): \stdClass|null
     {
-        return $this->run($audit, $lastInsertId, $file, $line);
+        return $this->run($lastInsertId, $file, $line);
     }
 }

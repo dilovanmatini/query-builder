@@ -119,46 +119,54 @@ class QBDelete extends QBStatement
      * value will be an object. Otherwise, it will be a string.
      * ->raw() // to get the query string
      * ->raw(true) // to get the query string and parameters
-     * ->row(true, true) // to get the query string and enable soft delete
      * Example of return value when $withParams is true:
      *  $obj->query; // The query string
      *  $obj->params; // The parameters as an array
      *  $obj->table; // The table name
      *  $obj->id; // The id of the deleted row
      * @param bool $withParams
-     * @param bool|null $softDelete
      * @return string|stdClass
      * @throws QBException
      */
-    public function raw(bool $withParams = false, bool $softDelete = null): string|stdClass
+    public function raw(bool $withParams = false): string|stdClass
     {
-        return $this->buildQuery($withParams, $softDelete);
+        return $this->buildQuery($withParams);
     }
 
     /**
      * @param bool $withParams If true, returns an object. Otherwise, returns a string.
-     * @param bool|null $softDelete If true, soft delete will be used. Otherwise, hard delete will be used.
      * @return string|stdClass
      * @throws QBException
      */
-    public function buildQuery(bool $withParams = false, bool $softDelete = null): string|stdClass
+    public function buildQuery(bool $withParams = false): string|stdClass
     {
-        if(is_null($softDelete)){
-            $softDelete = QBConfig::get('soft_delete');
-        }
-
         $query = "";
         $params = [];
         $table = "";
+        $execution = true;
         if (property_exists($this->data, 'delete')) {
             $table = $this->invokeTable($this->data->delete['table']);
-            if( $softDelete ){
-                $query .= "UPDATE " . $table;
-                if (isset($this->data->delete['as'])) {
-                    $query .= " " . $this->data->delete['as'];
+            $deleted_callback = $this->config('deleted_callback');
+            if( is_callable($deleted_callback) ){
+                $data = $deleted_callback();
+                $fields = [];
+                foreach ($data as $key => $value) {
+                    if($key != "" && $value != ""){
+                        $fields[] = "$key = '$value'";
+                    }
                 }
-                $soft_delete_column = QBConfig::get('soft_delete_column');
-                $query .= " SET $soft_delete_column = IF($soft_delete_column IS NULL, '".QBConfig::get('timestamp')."', $soft_delete_column)";
+                $fields = implode(", ", $fields);
+
+                if(!empty($fields)){
+                    $query .= "UPDATE " . $table;
+                    if (isset($this->data->delete['as'])) {
+                        $query .= " " . $this->data->delete['as'];
+                    }
+                    $query .= " SET $fields";
+                }
+                else{
+                    $execution = false;
+                }
             }
             else{
                 $query .= "DELETE FROM " . $table;
@@ -176,6 +184,10 @@ class QBDelete extends QBStatement
             throw new QBException("WHERE clause is required. If you want to delete all rows, use raw SQL query instead.");
         }
 
+        if(!$execution){
+            $query = "";
+        }
+
         if ($withParams) {
             $obj = new stdClass();
             $obj->query = $query;
@@ -190,23 +202,14 @@ class QBDelete extends QBStatement
     /**
      * Runs the query and returns an stdClass object.
      * ->run()
-     * ->run(true) // Soft delete
-     * ->run(false) // Hard delete
-     * ->run(true, true) // Soft delete and audit
-     * @param bool|null $softDelete If true, soft delete will be used. Otherwise, hard delete will be used.
-     * @param bool|null $audit If true, audit will be used. Otherwise, audit will not be used.
      * @param string|null $file The file name where the method is called. Used for debugging.
      * @param string|int|null $line The line number where the method is called. Used for debugging.
      * @return stdClass|null
      * @throws QBException
      */
-    public function run(bool $softDelete = null, bool $audit = null, string $file = null, string|int $line = null): stdClass|null
+    public function run(string $file = null, string|int $line = null): stdClass|null
     {
-        if(is_null($audit)){
-            $audit = QBConfig::get('audit');
-        }
-
-        $raw = $this->raw(true, $softDelete);
+        $raw = $this->raw(true);
 
         [$query, $params] = $this->prepareQuery($raw);
 
@@ -220,8 +223,11 @@ class QBDelete extends QBStatement
         $statement->affectedRows = $stmt->rowCount();
         $statement->raw = $query;
 
-        if ($audit && $raw->id > 0) {
-            QBConfig::auditCallback('delete', $raw->table, $raw->id, file: $file, line: $line);
+        if ($raw->id > 0) {
+            $audit_callback = $this->config('audit_callback');
+            if(is_callable($audit_callback)){
+                $audit_callback('delete', $raw->table, $raw->id, null);
+            }
         }
 
         return $statement;
@@ -230,18 +236,13 @@ class QBDelete extends QBStatement
     /**
      * Executes the query and returns an stdClass object.
      * ->execute()
-     * ->execute(true) // Soft delete
-     * ->execute(false) // Hard delete
-     * ->execute(true, true) // Soft delete and audit
-     * @param bool|null $softDelete If true, soft delete will be used. Otherwise, hard delete will be used.
-     * @param bool|null $audit If true, audit will be used. Otherwise, audit will not be used.
      * @param string|null $file The file name where the method is called. Used for debugging.
      * @param string|int|null $line The line number where the method is called. Used for debugging.
      * @return stdClass|null
      * @throws QBException
      */
-    public function execute(bool $softDelete = null, bool $audit = null, string $file = null, string|int $line = null): stdClass|null
+    public function execute(string $file = null, string|int $line = null): stdClass|null
     {
-        return $this->run($softDelete, $audit, $file, $line);
+        return $this->run($file, $line);
     }
 }

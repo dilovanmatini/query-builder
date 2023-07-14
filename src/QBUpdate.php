@@ -173,7 +173,7 @@ class QBUpdate extends QBStatement
             }
         }
         if (property_exists($this->data, 'set')) {
-            [$set, $param, $audit_data] = QB::resolve('set', $this->data->set);
+            [$set, $param, $audit_data] = QB::resolve('set', $this->data->set, $this);
             $params = array_merge($params, $param ?? []);
             if ($set != "") {
                 $affected = true;
@@ -210,23 +210,17 @@ class QBUpdate extends QBStatement
     /**
      * Runs the query and returns an stdClass object.
      * ->run()
-     * ->run(true) // To audit the query
      * Example of return value:
      * $obj->affectedRows // The number of affected rows
      * $obj->affectedAttributes // The number of affected attributes/columns
      * $obj->raw // The raw query string
-     * @param bool|null $audit If true, the query will be audited. If null, the value from QBConfig will be used.
      * @param string|null $file The file name where the method is called. Used for debugging.
      * @param string|int|null $line The line number where the method is called. Used for debugging.
      * @return \stdClass|null
      * @throws QBException
      */
-    public function run(bool $audit = null, string $file = null, string|int $line = null): \stdClass|null
+    public function run(string $file = null, string|int $line = null): \stdClass|null
     {
-        if (is_null($audit)) {
-            $audit = QBConfig::get('audit');
-        }
-
         $raw = $this->raw(true);
 
         [$query, $params] = $this->prepareQuery($raw);
@@ -242,8 +236,11 @@ class QBUpdate extends QBStatement
         $statement->affectedAttributes = $raw->audit_data;
         $statement->raw = $query;
 
-        if ($audit && !is_null($raw->id) && $raw->id > 0) {
-            QBConfig::auditCallback('update', $raw->table, $raw->id, $raw->audit_data, $file, $line);
+        if (!is_null($raw->id) && $raw->id > 0) {
+            $audit_callback = $this->config('audit_callback');
+            if(is_callable($audit_callback)){
+                $audit_callback('update', $raw->table, $raw->id, $raw->audit_data);
+            }
         }
 
         return $statement;
@@ -252,19 +249,17 @@ class QBUpdate extends QBStatement
     /**
      * Executes the query and returns an stdClass object.
      * ->execute()
-     * ->execute(true) // To audit the query
      * Example of return value:
      * $obj->affectedRows // The number of affected rows
      * $obj->affectedAttributes // The number of affected attributes/columns
      * $obj->raw // The raw query string
-     * @param bool|null $audit If true, the query will be audited. If null, the value from QBConfig will be used.
      * @param string|null $file The file name where the method is called. Used for debugging.
      * @param string|int|null $line The line number where the method is called. Used for debugging.
      * @return \stdClass|null
      * @throws QBException
      */
-    public function execute(bool $audit = null, string $file = null, string|int $line = null): \stdClass|null
+    public function execute(string $file = null, string|int $line = null): \stdClass|null
     {
-        return $this->run($audit, $file, $line);
+        return $this->run($file, $line);
     }
 }

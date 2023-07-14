@@ -378,14 +378,15 @@ class QBSelect extends QBStatement
      * ->fetch() // to get the result as an object
      * ->fetch(\PDO""FETCH_ASSOC) // to get the result as an associative array
      * ->fetch(\PDO""FETCH_ASSOC, __FILE__, __LINE__) // for debugging
-     * @param int $fetch The fetch style. Default is \PDO::FETCH_OBJ
+     * @param int|null $fetch The fetch style. Default is \PDO::FETCH_OBJ
      * @param string|null $file The file name where the method is called. Used for debugging.
      * @param string|int|null $line The line number where the method is called. Used for debugging.
      * @return mixed
      * @throws QBException
      */
-    public function fetch(int $fetch = \PDO::FETCH_OBJ, string $file = null, string|int $line = null): mixed
+    public function fetch(int $fetch = null, string $file = null, string|int $line = null): mixed
     {
+        $fetch = $fetch ?? $this->config('fetch_mode');
         return $this->prepareFetch($file, $line)->fetch($fetch);
     }
 
@@ -394,14 +395,15 @@ class QBSelect extends QBStatement
      * ->fetchAll() // to get the result as an object
      * ->fetchAll(\PDO""FETCH_ASSOC) // to get the result as an associative array
      * ->fetchAll(\PDO""FETCH_ASSOC, __FILE__, __LINE__) // for debugging
-     * @param int $fetch The fetch style. Default is \PDO::FETCH_OBJ
+     * @param int|null $fetch The fetch style. Default is \PDO::FETCH_OBJ
      * @param string|null $file The file name where the method is called. Used for debugging.
      * @param string|int|null $line The line number where the method is called. Used for debugging.
      * @return mixed
      * @throws QBException
      */
-    public function fetchAll(int $fetch = \PDO::FETCH_OBJ, string $file = null, string|int $line = null): mixed
+    public function fetchAll(int $fetch = null, string $file = null, string|int $line = null): mixed
     {
+        $fetch = $fetch ?? $this->config('fetch_mode');
         return $this->prepareFetch($file, $line)->fetchAll($fetch);
     }
 

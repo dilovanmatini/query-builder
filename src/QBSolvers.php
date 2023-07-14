@@ -19,6 +19,7 @@ trait QBSolvers
         $this->permittedSTDClass['second_column'] = ['raw', 'now', 'param', ...QB::$comparisonOperators];
         $this->permittedSTDClass['third_column'] = ['raw', 'now', 'param'];
         $this->permittedSTDClass['value'] = ['now', 'param'];
+        $this->permittedSTDClass['insert_value'] = ['now', 'raw'];
     }
 
     public static function aliasSolver(stdClass $alias): array{
