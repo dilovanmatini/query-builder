@@ -1,10 +1,9 @@
 # Query Builder
-This library offers a seamless and natural way to construct database queries in PHP that closely resembles writing queries in the SQL native language.
+Enables PHP developers to build SQL queries similar to native language syntax.
 
 ## Requirements
 - PHP >= 8.1
 - PDO PHP Extension
-- HTTP server with PHP support (e.g. Apache, Nginx, Caddy)
 
 ## Installation
 ```bash
@@ -43,7 +42,7 @@ $user = QB::select('id, name, email')->from(User::class)->where('id', 1)->and('s
 echo $user->name;
 ```
 
-> In Laravel, the connection detects automatically.
+> In Laravel, the connection detects automatically. You don't need to set it.
 
 Using Database Credentials:
 
@@ -70,20 +69,17 @@ echo $user->name;
 
 ## Configuration
 
-|Option| DataType  | Default Value| Explanation                                                                                                   |
-|--|--|--|---------------------------------------------------------------------------------------------------------------|
-|`connection`|`PDO`|`null`| PDO Instance                                                                                                  |
-|`audit_callback`|`function`|`null`| The given callback function will be called after executing INSERT, UPDATE, and DELETE queries                 |
-|`soft_delete`|`bool`|`false`| It provides soft delete functionality                                                                         |
-|`soft_delete_column`|`string`|`deleted_at`| It accepts a column name for soft delete functionality                                                        |
-|`timestamp`|`string`|`now()`| It accepts a timestamp value for soft delete functionality                                                    |
-|`model_class`|`string`|`null`| It accepts a Model class name especially for projects using MVC pattern. In Laravel, you don't need to set it |
-|`host`|`string`|`127.0.0.1`| Database host name or IP address                                                                              |
-|`port`|`int`|`3306`| Database port number                                                                                          |
-|`database`|`string`|`""`| Database name                                                                                                 |
-|`username`|`string`|`root`| Database username                                                                                             |
-|`password`|`string`|`""`| Database password                                                                                             |
-|`charset`|`string`|`utf8mb4`| Database charset                                                                                              |
+| Option        | DataType | Default Value    | Explanation                                                                                                                    |
+|---------------|----------|------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| `connection`  | `PDO`    | `null`           | PDO Instance                                                                                                                   |
+| `model_class` | `string` | `null`           | It accepts a Model class name especially for projects using MVC pattern. In Laravel, you don't need to set it                  |
+| `fetch_mode`  | `int`    | `PDO::FETCH_OBJ` | It accepts all PDO fetch modes. For more information, please check [PDO Fetch Modes](https://phpdelusions.net/pdo/fetch_modes) |
+| `host`        | `string` | `127.0.0.1`      | Database host name or IP address                                                                                               |
+| `port`        | `int`    | `3306`           | Database port number                                                                                                           |
+| `database`    | `string` | `"test"`         | Database name                                                                                                                  |
+| `username`    | `string` | `root`           | Database username                                                                                                              |
+| `password`    | `string` | `""`             | Database password                                                                                                              |
+| `charset`     | `string` | `utf8mb4`        | Database charset                                                                                                               |
 
 >If you set a valid `connection` you don't need to set `host`, `port`, `database`, `username`, `password`, and `charset` options.
 
@@ -101,7 +97,11 @@ echo $user->name;
   - [Having](#having)
   - [Limit](#limit)
   - [Offset](#offset)
-  - [Fetch, FetchAll, Statement](#fetch)
+  - [Fetch, Fetch ALL, and Statement](#fetch-fetchall-and-statement)
+  - [Helpers](#helpers)
+    - [Raw](#raw)
+    - [Param](#param)
+    - [Now](#now)
 - [Insert](#insert)
   - [Columns](#columns)
   - [Values](#values)
@@ -594,6 +594,19 @@ SELECT * FROM users LIMIT 10
 
 <br>
 
+You can also pass the offset as the second argument.
+
+```php
+$users = QB::select()
+        ->from('users')
+        ->limit(10, 100);
+```
+```SQL
+SELECT * FROM users LIMIT 10, 100
+```
+
+<br>
+
 ### Offset
 
 The `offset()` method is used to add a `OFFSET` clause to the query. The `offset()` method accepts one argument.
@@ -618,9 +631,19 @@ The `fetch()` method is used to fetch data from the database. The `fetch()` meth
 
 > The default fetch mode is `PDO::FETCH_OBJ`. You can pass any fetch mode from the `PDO` class.
 
-To fetch data as an associative array:
+To fetch data as an object as stdClass instance:
 
+```php
+$user = QB::select()
+        ->from('users')
+        ->where('id', 1)
+        ->fetch();
+
+echo $user->name; // John Doe
+```
 > You can use `fetch` when you want to fetch only one row.
+
+To fetch data as an associative array:
 
 ```php
 $user = QB::select()
@@ -635,8 +658,6 @@ echo $user['name']; // John Doe
 
 The `fetchAll()` method is used to fetch all data from the database. The `fetchAll()` method accepts one argument as the fetch mode.
 
-> You can use `fetchAll` when you want to fetch all rows.
-
 ```php
 $users = QB::select()
         ->from('users')
@@ -647,11 +668,12 @@ foreach ($users as $user) {
 }
 ```
 
+> You can use `fetchAll` when you want to fetch all rows.
+
 <br>
 
 The `statement()` method is used to get the `PDOStatement` object.
 
-> You can use `statement` when you want to use the `PDOStatement` methods.
 
 ```php
 $stmt = QB::select()
@@ -662,6 +684,8 @@ while ($user = $stmt->fetch()) {
     echo $user->name; // John Doe
 }
 ```
+
+> You can use `statement` when you want to use the `PDOStatement` methods.
 
 <br>
 
@@ -681,7 +705,7 @@ SELECT * FROM users WHERE id = 1
 
 <br>
 
-### Some other helpers
+### Helpers
 
 #### Raw
 
@@ -732,7 +756,7 @@ SELECT * FROM users WHERE created_at = NOW()
 
 <br>
 
-### Some other examples from simple to complex
+### Some examples from simple to complex
 
 ```php
 
@@ -843,8 +867,6 @@ LIMIT 10, 100
 
 The `QB::insert()` method is used to create an `INSERT` query. The `insert()` method accepts one argument as the table name.
 
-> You can also use alternative methods like `insertInto()`. They are the same.
-
 ```php
 QB::insert('users')->values([
     'name' => 'John Doe'
@@ -853,6 +875,8 @@ QB::insert('users')->values([
 ```SQL
 INSERT INTO users (name) VALUES ('John Doe')
 ```
+
+> You can also use `insertInto()` as well. It is an alias of `insert()` method.
 
 > You can use **Model** classes instead of table names.
 
@@ -974,8 +998,6 @@ UPDATE users SET name = 'John Doe' WHERE id = 1
 
 The `QB::delete()` method is used to create a `DELETE` query. The `delete()` method accepts two arguments as the table name and the alias of the table.
 
-> You can also use alternative methods like `deleteFrom()`. They are the same.
-
 > You can also use `as()` method to set the alias of the table.
 
 ```php
@@ -984,6 +1006,8 @@ QB::delete('users')->where('id', 1);
 ```SQL
 DELETE FROM users WHERE id = 1
 ```
+
+> You can also use `deleteFrom()` as well. It is an alias of `delete()` method.
 
 > You can use **Model** classes instead of table names.
 
