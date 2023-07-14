@@ -22,47 +22,18 @@ class QBConfig
         'connection' => null,
 
         /**
-         * The given callback function will be called after executing INSERT, UPDATE, and DELETE queries.
-         * The callback function accepts the below arguments:
-         * @param string $type expected values: insert, update, delete
-         * @param string $table the affected table name
-         * @param int $id the affected id number
-         * @param array $audit_data if the $type is update, it provides the updated columns
-         * @param string $file if you provide the __FILE__ with your query, it will return to the callback function.
-         * @param int|string $line if you provide the __LINE__ with your query, it will return to the callback function.
-         *
-         * @var callable|null $config['audit_callback']
-         */
-        'audit_callback' => null,
-
-        /**
-         * It provides soft delete functionality. It will add a current timestamp to the soft_delete_column.
-         * By enabling this feature, you need to take "soft_delete_column" and "timestamp" configurations into account.
-         *
-         * @var bool $config['soft_delete']
-         */
-        'soft_delete' => false,
-
-        /**
-         * It accepts a column name for soft delete functionality. By default, it is "deleted_at".
-         *
-         * @var string $config['soft_delete_column']
-         */
-        'soft_delete_column' => 'deleted_at',
-
-        /**
-         * It accepts a timestamp value for soft delete functionality. By default, it is "now()".
-         *
-         * @var string $config['timestamp']
-         */
-        'timestamp' => null,
-
-        /**
          * It accepts a Model class name especially for projects using MVC pattern.
          *
          * @var string|null $config['model_class']
          */
         'model_class' => null,
+
+        /**
+         * It accepts all PDO fetch modes.
+         *
+         * @var int $config['fetch_mode']
+         */
+        'fetch_mode' => \PDO::FETCH_OBJ,
 
         /**
          * Database host name or IP address.
@@ -108,17 +79,6 @@ class QBConfig
     ];
 
     /**
-     * It initializes the default configurations.
-     * @return void
-     */
-    public static function init(): void
-    {
-        if (static::$config['timestamp'] === null) {
-            static::$config['timestamp'] = date('Y-m-d H:i:s');
-        }
-    }
-
-    /**
      * It sets the set of configurations.
      * @param string|array $params
      * @param mixed $value
@@ -137,8 +97,6 @@ class QBConfig
                 static::$config[$params] = $value;
             }
         }
-
-        static::init();
     }
 
     /**
@@ -151,11 +109,11 @@ class QBConfig
         return static::$config[$name] ?? null;
     }
 
-    public static function auditCallback(string $type, string $table, int $id = 0, array $audit_data = [], string $file = null, int|string $line = null): void
+    public static function getQueryConfig(): array
     {
-        $audit_callback = static::$config['audit_callback'] ?? null;
-        if (is_callable($audit_callback)) {
-            $audit_callback($type, $table, $id, $audit_data, $file, $line);
-        }
+        return [
+            'model_class' => static::$config['model_class'],
+            'fetch_mode' => static::$config['fetch_mode'],
+        ];
     }
 }
